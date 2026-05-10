@@ -1,12 +1,15 @@
 import os
 import yt_dlp
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, BotCommandScopeChat, BotCommandScopeDefault
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
 TOKEN = os.environ.get("TOKEN")
 ADMIN_ID = os.environ.get("ADMIN_ID")
 
 download_stats = {"total": 0}
+user_langs = {}
+pending = {}
+all_users = set()
 
 SUPPORTED = ["instagram.com", "tiktok.com", "pinterest.com", "pin.it"]
 
@@ -22,7 +25,7 @@ WELCOME = {
         "2. Paste it here\n"
         "3. Choose Video or Document\n"
         "4. Done! ✅\n\n"
-        "🌐 Language: /lang"
+        "🌐 Change language: /lang"
     ),
     "ru": (
         "👋 Добро пожаловать в бот для скачивания медиа!\n\n"
@@ -35,7 +38,7 @@ WELCOME = {
         "2. Вставьте её сюда\n"
         "3. Выберите Видео или Документ\n"
         "4. Готово! ✅\n\n"
-        "🌐 Язык: /lang"
+        "🌐 Сменить язык: /lang"
     ),
     "uz": (
         "👋 Media Yuklovchi Botga Xush Kelibsiz!\n\n"
@@ -48,7 +51,7 @@ WELCOME = {
         "2. Bu yerga joylashtiring\n"
         "3. Video yoki Hujjat tanlang\n"
         "4. Tayyor! ✅\n\n"
-        "🌐 Til: /lang"
+        "🌐 Tilni o'zgartirish: /lang"
     ),
 }
 
@@ -63,6 +66,11 @@ MSGS = {
         "failed": "❌ Download failed.\n\nReason: ",
         "choose_lang": "🌐 Choose your language:",
         "lang_set": "✅ Language set!",
+        "broadcast_msg": "🔄 Bot has been updated!\n\nPlease press /start to use the latest version ✅",
+        "broadcast_done": "📢 Broadcast done!\n✅ Sent: {s}\n❌ Failed: {f}",
+        "admin_only": "⛔ Admin only.",
+        "stats": "📊 Total downloads: {n}",
+        "expired": "❌ Session expired. Please send the link again.",
     },
     "ru": {
         "downloading": "⏳ Скачивание...",
@@ -74,6 +82,11 @@ MSGS = {
         "failed": "❌ Ошибка загрузки.\n\nПричина: ",
         "choose_lang": "🌐 Выберите язык:",
         "lang_set": "✅ Язык установлен!",
+        "broadcast_msg": "🔄 Бот обновлён!\n\nНажмите /start для использования новой версии ✅",
+        "broadcast_done": "📢 Рассылка завершена!\n✅ Отправлено: {s}\n❌ Ошибок: {f}",
+        "admin_only": "⛔ Только для администратора.",
+        "stats": "📊 Всего загрузок: {n}",
+        "expired": "❌ Сессия истекла. Отправьте ссылку снова.",
     },
     "uz": {
         "downloading": "⏳ Yuklanmoqda...",
@@ -85,11 +98,13 @@ MSGS = {
         "failed": "❌ Yuklash muvaffaqiyatsiz.\n\nSabab: ",
         "choose_lang": "🌐 Tilni tanlang:",
         "lang_set": "✅ Til o'rnatildi!",
+        "broadcast_msg": "🔄 Bot yangilandi!\n\nEng yangi versiyadan foydalanish uchun /start bosing ✅",
+        "broadcast_done": "📢 Xabar yuborildi!\n✅ Yuborildi: {s}\n❌ Xato: {f}",
+        "admin_only": "⛔ Faqat admin uchun.",
+        "stats": "📊 Jami yuklamalar: {n}",
+        "expired": "❌ Sessiya tugadi. Havolani qayta yuboring.",
     },
 }
-
-user_langs = {}
-pending = {}
 
 def get_lang(user_id):
     return user_langs.get(user_id, "en")
@@ -97,8 +112,27 @@ def get_lang(user_id):
 def m(user_id, key):
     return MSGS[get_lang(user_id)][key]
 
+async def set_commands(app):
+    user_commands = [
+        BotCommand("start", "🚀 Start the bot"),
+        BotCommand("lang", "🌐 Change language"),
+    ]
+    admin_commands = [
+        BotCommand("start", "🚀 Start the bot"),
+        BotCommand("lang", "🌐 Change language"),
+        BotCommand("stats", "📊 Download statistics"),
+        BotCommand("broadcast", "📢 Notify all users"),
+    ]
+    await app.bot.set_my_commands(user_commands, scope=BotCommandScopeDefault())
+    if ADMIN_ID:
+        await app.bot.set_my_commands(
+            admin_commands,
+            scope=BotCommandScopeChat(chat_id=int(ADMIN_ID))
+        )
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
+    all_users.add(uid)
     lang = get_lang(uid)
     await update.message.reply_text(WELCOME[lang])
 
@@ -116,10 +150,30 @@ async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
-    if ADMIN_ID and str(uid) == str(ADMIN_ID):
-        await update.message.reply_text(f"📊 Total downloads: {download_stats['total']}")
-    else:
-        await update.message.reply_text("⛔ Admin only command.")
+    if not ADMIN_ID or str(uid) != str(ADMIN_ID):
+        await update.message.reply_text(m(uid, "admin_only"))
+        return
+    await update.message.reply_text(m(uid, "stats").format(n=download_stats["total"]))
+
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if not ADMIN_ID or str(uid) != str(ADMIN_ID):
+        await update.message.reply_text(m(uid, "admin_only"))
+        return
+    success = 0
+    failed = 0
+    for user_id in all_users:
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=m(user_id, "broadcast_msg")
+            )
+            success += 1
+        except:
+            failed += 1
+    await update.message.reply_text(
+        m(uid, "broadcast_done").format(s=success, f=failed)
+    )
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -137,7 +191,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         url = pending.get(uid)
 
         if not url:
-            await query.edit_message_text("❌ Session expired. Please send the link again.")
+            await query.edit_message_text(m(uid, "expired"))
             return
 
         msg = await query.edit_message_text(m(uid, "downloading"))
@@ -181,6 +235,7 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     pending[uid] = url
+    all_users.add(uid)
 
     keyboard = [[
         InlineKeyboardButton(m(uid, "as_video"), callback_data="dl_video"),
@@ -191,10 +246,14 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-app = ApplicationBuilder().token(TOKEN).build()
+async def on_startup(app):
+    await set_commands(app)
+
+app = ApplicationBuilder().token(TOKEN).post_init(on_startup).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("lang", lang_command))
 app.add_handler(CommandHandler("stats", stats_command))
+app.add_handler(CommandHandler("broadcast", broadcast))
 app.add_handler(CallbackQueryHandler(handle_callback))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
 app.run_polling()
