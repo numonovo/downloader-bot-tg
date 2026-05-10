@@ -10,6 +10,7 @@ download_stats = {"total": 0}
 user_langs = {}
 pending = {}
 all_users = set()
+new_users = set()
 
 SUPPORTED = ["instagram.com", "tiktok.com", "pinterest.com", "pin.it"]
 
@@ -23,8 +24,7 @@ WELCOME = {
         "📌 How to use:\n"
         "1. Copy any video link\n"
         "2. Paste it here\n"
-        "3. Choose Video or Document\n"
-        "4. Done! ✅\n\n"
+        "3. Get your video + find the music! 🎵\n\n"
         "🌐 Change language: /lang"
     ),
     "ru": (
@@ -36,8 +36,7 @@ WELCOME = {
         "📌 Как использовать:\n"
         "1. Скопируйте ссылку на видео\n"
         "2. Вставьте её сюда\n"
-        "3. Выберите Видео или Документ\n"
-        "4. Готово! ✅\n\n"
+        "3. Получите видео + найдите музыку! 🎵\n\n"
         "🌐 Сменить язык: /lang"
     ),
     "uz": (
@@ -49,19 +48,17 @@ WELCOME = {
         "📌 Qanday foydalanish:\n"
         "1. Video havolasini nusxalang\n"
         "2. Bu yerga joylashtiring\n"
-        "3. Video yoki Hujjat tanlang\n"
-        "4. Tayyor! ✅\n\n"
+        "3. Videoni oling + musiqa toping! 🎵\n\n"
         "🌐 Tilni o'zgartirish: /lang"
     ),
 }
 
 MSGS = {
     "en": {
+        "choose_lang_first": "👋 Hello! Please choose your language first:",
         "downloading": "⏳ Downloading...",
         "uploading": "📤 Uploading...",
-        "choose": "📎 How do you want to receive it?",
-        "as_video": "🎬 As Video",
-        "as_doc": "📄 As Document",
+        "extracting_audio": "🎵 Extracting audio...",
         "invalid": "❌ Please send a valid link from Instagram, TikTok or Pinterest.",
         "failed": "❌ Download failed.\n\nReason: ",
         "choose_lang": "🌐 Choose your language:",
@@ -71,13 +68,20 @@ MSGS = {
         "admin_only": "⛔ Admin only.",
         "stats": "📊 Total downloads: {n}",
         "expired": "❌ Session expired. Please send the link again.",
+        "music_options": "🎵 What do you want to do with the music?",
+        "get_audio": "🎵 Extract Audio",
+        "find_shazam": "🔍 Find on Shazam",
+        "find_spotify": "🎧 Find on Spotify",
+        "audio_sending": "🎵 Sending audio file...",
+        "audio_failed": "❌ Could not extract audio.",
+        "shazam_link": "🔍 Try to find the song on Shazam:",
+        "spotify_link": "🎧 Search the song on Spotify:",
     },
     "ru": {
+        "choose_lang_first": "👋 Привет! Сначала выберите язык:",
         "downloading": "⏳ Скачивание...",
         "uploading": "📤 Загрузка...",
-        "choose": "📎 Как вы хотите получить файл?",
-        "as_video": "🎬 Как Видео",
-        "as_doc": "📄 Как Документ",
+        "extracting_audio": "🎵 Извлечение аудио...",
         "invalid": "❌ Пожалуйста, отправьте ссылку с Instagram, TikTok или Pinterest.",
         "failed": "❌ Ошибка загрузки.\n\nПричина: ",
         "choose_lang": "🌐 Выберите язык:",
@@ -87,13 +91,20 @@ MSGS = {
         "admin_only": "⛔ Только для администратора.",
         "stats": "📊 Всего загрузок: {n}",
         "expired": "❌ Сессия истекла. Отправьте ссылку снова.",
+        "music_options": "🎵 Что сделать с музыкой?",
+        "get_audio": "🎵 Извлечь аудио",
+        "find_shazam": "🔍 Найти в Shazam",
+        "find_spotify": "🎧 Найти в Spotify",
+        "audio_sending": "🎵 Отправка аудио файла...",
+        "audio_failed": "❌ Не удалось извлечь аудио.",
+        "shazam_link": "🔍 Попробуйте найти песню в Shazam:",
+        "spotify_link": "🎧 Найдите песню в Spotify:",
     },
     "uz": {
+        "choose_lang_first": "👋 Salom! Avval tilni tanlang:",
         "downloading": "⏳ Yuklanmoqda...",
         "uploading": "📤 Yuborilmoqda...",
-        "choose": "📎 Qanday qabul qilmoqchisiz?",
-        "as_video": "🎬 Video sifatida",
-        "as_doc": "📄 Hujjat sifatida",
+        "extracting_audio": "🎵 Audio ajratilmoqda...",
         "invalid": "❌ Iltimos, Instagram, TikTok yoki Pinterest havolasini yuboring.",
         "failed": "❌ Yuklash muvaffaqiyatsiz.\n\nSabab: ",
         "choose_lang": "🌐 Tilni tanlang:",
@@ -103,14 +114,23 @@ MSGS = {
         "admin_only": "⛔ Faqat admin uchun.",
         "stats": "📊 Jami yuklamalar: {n}",
         "expired": "❌ Sessiya tugadi. Havolani qayta yuboring.",
+        "music_options": "🎵 Musiqa bilan nima qilmoqchisiz?",
+        "get_audio": "🎵 Audioni ajratib olish",
+        "find_shazam": "🔍 Shazamda topish",
+        "find_spotify": "🎧 Spotifyda topish",
+        "audio_sending": "🎵 Audio fayl yuborilmoqda...",
+        "audio_failed": "❌ Audioni ajratib bo'lmadi.",
+        "shazam_link": "🔍 Shazamda qo'shiqni toping:",
+        "spotify_link": "🎧 Spotifyda qo'shiqni toping:",
     },
 }
 
 def get_lang(user_id):
-    return user_langs.get(user_id, "en")
+    return user_langs.get(user_id, None)
 
 def m(user_id, key):
-    return MSGS[get_lang(user_id)][key]
+    lang = get_lang(user_id) or "en"
+    return MSGS[lang][key]
 
 async def set_commands(app):
     user_commands = [
@@ -123,7 +143,10 @@ async def set_commands(app):
         BotCommand("stats", "📊 Download statistics"),
         BotCommand("broadcast", "📢 Notify all users"),
     ]
-    await app.bot.set_my_commands(user_commands, scope=BotCommandScopeDefault())
+    await app.bot.set_my_commands(
+        user_commands,
+        scope=BotCommandScopeDefault()
+    )
     if ADMIN_ID:
         await app.bot.set_my_commands(
             admin_commands,
@@ -133,8 +156,22 @@ async def set_commands(app):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     all_users.add(uid)
-    lang = get_lang(uid)
-    await update.message.reply_text(WELCOME[lang])
+
+    # If new user, ask language first
+    if uid not in user_langs:
+        new_users.add(uid)
+        keyboard = [
+            [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")],
+            [InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru")],
+            [InlineKeyboardButton("🇺🇿 O'zbek", callback_data="lang_uz")],
+        ]
+        await update.message.reply_text(
+            "👋 Hello! / Привет! / Salom!\n\nPlease choose your language:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
+    await update.message.reply_text(WELCOME[get_lang(uid)])
 
 async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -153,7 +190,9 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not ADMIN_ID or str(uid) != str(ADMIN_ID):
         await update.message.reply_text(m(uid, "admin_only"))
         return
-    await update.message.reply_text(m(uid, "stats").format(n=download_stats["total"]))
+    await update.message.reply_text(
+        m(uid, "stats").format(n=download_stats["total"])
+    )
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -180,16 +219,22 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = query.from_user.id
     await query.answer()
 
+    # Language selection
     if query.data.startswith("lang_"):
         lang = query.data.split("_")[1]
         user_langs[uid] = lang
-        await query.edit_message_text(MSGS[lang]["lang_set"])
+        all_users.add(uid)
+        # If new user, show welcome after language set
+        if uid in new_users:
+            new_users.discard(uid)
+            await query.edit_message_text(WELCOME[lang])
+        else:
+            await query.edit_message_text(MSGS[lang]["lang_set"])
         return
 
-    if query.data.startswith("dl_"):
-        mode = query.data.split("_")[1]
+    # Download video
+    if query.data == "dl_video":
         url = pending.get(uid)
-
         if not url:
             await query.edit_message_text(m(uid, "expired"))
             return
@@ -210,24 +255,117 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
                 file_path = ydl.prepare_filename(info)
+                title = info.get("title", "")
 
             await msg.edit_text(m(uid, "uploading"))
 
             with open(file_path, "rb") as f:
-                if mode == "doc":
-                    await query.message.reply_document(document=f)
-                else:
-                    await query.message.reply_video(video=f)
+                await query.message.reply_video(video=f)
 
             os.remove(file_path)
             download_stats["total"] += 1
             await msg.delete()
 
+            # Show music options after video
+            keyboard = [[
+                InlineKeyboardButton(
+                    m(uid, "get_audio"), callback_data="music_audio"
+                ),
+            ],[
+                InlineKeyboardButton(
+                    m(uid, "find_shazam"), callback_data="music_shazam"
+                ),
+                InlineKeyboardButton(
+                    m(uid, "find_spotify"), callback_data="music_spotify"
+                ),
+            ]]
+            await query.message.reply_text(
+                m(uid, "music_options"),
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
         except Exception as e:
             await msg.edit_text(m(uid, "failed") + str(e))
 
+    # Extract audio
+    if query.data == "music_audio":
+        url = pending.get(uid)
+        if not url:
+            await query.edit_message_text(m(uid, "expired"))
+            return
+
+        msg = await query.edit_message_text(m(uid, "extracting_audio"))
+
+        try:
+            os.makedirs("downloads", exist_ok=True)
+
+            ydl_opts = {
+                "outtmpl": f"downloads/{uid}_audio_%(id)s.%(ext)s",
+                "format": "bestaudio/best",
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }],
+                "quiet": True,
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                audio_path = f"downloads/{uid}_audio_{info['id']}.mp3"
+
+            await msg.edit_text(m(uid, "audio_sending"))
+
+            with open(audio_path, "rb") as f:
+                await query.message.reply_audio(audio=f)
+
+            os.remove(audio_path)
+            await msg.delete()
+
+        except Exception as e:
+            await msg.edit_text(m(uid, "audio_failed"))
+
+    # Shazam link
+    if query.data == "music_shazam":
+        await query.edit_message_text(
+            m(uid, "shazam_link") +
+            "\nhttps://shazam.com"
+        )
+
+    # Spotify link
+    if query.data == "music_spotify":
+        url = pending.get(uid)
+        title = ""
+        if url:
+            try:
+                with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+                    info = ydl.extract_info(url, download=False)
+                    title = info.get("title", "")
+            except:
+                pass
+        search_query = title.replace(" ", "+") if title else ""
+        spotify_url = f"https://open.spotify.com/search/{search_query}"
+        await query.edit_message_text(
+            m(uid, "spotify_link") +
+            f"\n{spotify_url}"
+        )
+
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
+
+    # Block if language not set yet
+    if uid not in user_langs:
+        keyboard = [
+            [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")],
+            [InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru")],
+            [InlineKeyboardButton("🇺🇿 O'zbek", callback_data="lang_uz")],
+        ]
+        await update.message.reply_text(
+            "👋 Hello! / Привет! / Salom!\n\nPlease choose your language first:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
     url = update.message.text.strip()
 
     if not any(domain in url for domain in SUPPORTED):
@@ -238,11 +376,10 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     all_users.add(uid)
 
     keyboard = [[
-        InlineKeyboardButton(m(uid, "as_video"), callback_data="dl_video"),
-        InlineKeyboardButton(m(uid, "as_doc"), callback_data="dl_doc"),
+        InlineKeyboardButton("⬇️ Download Video", callback_data="dl_video"),
     ]]
     await update.message.reply_text(
-        m(uid, "choose"),
+        "⬇️ Ready to download!",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
