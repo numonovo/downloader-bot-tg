@@ -4,13 +4,11 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
 TOKEN = os.environ.get("TOKEN")
-ADMIN_ID = os.environ.get("ADMIN_ID")  # your telegram user ID
+ADMIN_ID = os.environ.get("ADMIN_ID")
 
-# Stats counter
 download_stats = {"total": 0}
 
-# Supported platforms
-SUPPORTED = ["instagram.com", "tiktok.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch", "pinterest.com", "pin.it"]
+SUPPORTED = ["instagram.com", "tiktok.com", "pinterest.com", "pin.it"]
 
 WELCOME = {
     "en": (
@@ -18,8 +16,6 @@ WELCOME = {
         "📥 Supported platforms:\n"
         "• Instagram (Posts, Reels, Stories)\n"
         "• TikTok\n"
-        "• YouTube & Shorts\n"
-        "• Facebook\n"
         "• Pinterest\n\n"
         "📌 How to use:\n"
         "1. Copy any video link\n"
@@ -33,8 +29,6 @@ WELCOME = {
         "📥 Поддерживаемые платформы:\n"
         "• Instagram (Посты, Рилс, Истории)\n"
         "• TikTok\n"
-        "• YouTube и Shorts\n"
-        "• Facebook\n"
         "• Pinterest\n\n"
         "📌 Как использовать:\n"
         "1. Скопируйте ссылку на видео\n"
@@ -48,8 +42,6 @@ WELCOME = {
         "📥 Qo'llab-quvvatlanadigan platformalar:\n"
         "• Instagram (Postlar, Reels, Storylar)\n"
         "• TikTok\n"
-        "• YouTube va Shorts\n"
-        "• Facebook\n"
         "• Pinterest\n\n"
         "📌 Qanday foydalanish:\n"
         "1. Video havolasini nusxalang\n"
@@ -62,41 +54,40 @@ WELCOME = {
 
 MSGS = {
     "en": {
-        "downloading": "⏳ Downloading... 0%",
+        "downloading": "⏳ Downloading...",
         "uploading": "📤 Uploading...",
         "choose": "📎 How do you want to receive it?",
         "as_video": "🎬 As Video",
         "as_doc": "📄 As Document",
-        "invalid": "❌ Please send a valid link from Instagram, TikTok, YouTube, Facebook or Pinterest.",
+        "invalid": "❌ Please send a valid link from Instagram, TikTok or Pinterest.",
         "failed": "❌ Download failed.\n\nReason: ",
         "choose_lang": "🌐 Choose your language:",
         "lang_set": "✅ Language set!",
     },
     "ru": {
-        "downloading": "⏳ Скачивание... 0%",
+        "downloading": "⏳ Скачивание...",
         "uploading": "📤 Загрузка...",
         "choose": "📎 Как вы хотите получить файл?",
         "as_video": "🎬 Как Видео",
         "as_doc": "📄 Как Документ",
-        "invalid": "❌ Пожалуйста, отправьте ссылку с Instagram, TikTok, YouTube, Facebook или Pinterest.",
+        "invalid": "❌ Пожалуйста, отправьте ссылку с Instagram, TikTok или Pinterest.",
         "failed": "❌ Ошибка загрузки.\n\nПричина: ",
         "choose_lang": "🌐 Выберите язык:",
         "lang_set": "✅ Язык установлен!",
     },
     "uz": {
-        "downloading": "⏳ Yuklanmoqda... 0%",
+        "downloading": "⏳ Yuklanmoqda...",
         "uploading": "📤 Yuborilmoqda...",
         "choose": "📎 Qanday qabul qilmoqchisiz?",
         "as_video": "🎬 Video sifatida",
         "as_doc": "📄 Hujjat sifatida",
-        "invalid": "❌ Iltimos, Instagram, TikTok, YouTube, Facebook yoki Pinterest havolasini yuboring.",
+        "invalid": "❌ Iltimos, Instagram, TikTok yoki Pinterest havolasini yuboring.",
         "failed": "❌ Yuklash muvaffaqiyatsiz.\n\nSabab: ",
         "choose_lang": "🌐 Tilni tanlang:",
         "lang_set": "✅ Til o'rnatildi!",
     },
 }
 
-# Store user languages and pending downloads
 user_langs = {}
 pending = {}
 
@@ -135,17 +126,14 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = query.from_user.id
     await query.answer()
 
-    # Language selection
     if query.data.startswith("lang_"):
         lang = query.data.split("_")[1]
         user_langs[uid] = lang
         await query.edit_message_text(MSGS[lang]["lang_set"])
         return
 
-    # Video or Document choice
     if query.data.startswith("dl_"):
-        parts = query.data.split("_", 2)
-        mode = parts[1]  # video or doc
+        mode = query.data.split("_")[1]
         url = pending.get(uid)
 
         if not url:
@@ -160,20 +148,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ydl_opts = {
                 "outtmpl": f"downloads/{uid}_%(id)s.%(ext)s",
                 "quiet": True,
-                "progress_hooks": [lambda d: None],
+                "http_headers": {
+                    "User-Agent": "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/96.0.4664.45 Mobile Safari/537.36"
+                },
             }
-
-            # Progress updater
-            last = [0]
-            async def update_progress(d):
-                if d["status"] == "downloading":
-                    pct = d.get("_percent_str", "...").strip()
-                    if pct != last[0]:
-                        last[0] = pct
-                        try:
-                            await msg.edit_text(f"⏳ Downloading... {pct}")
-                        except:
-                            pass
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
